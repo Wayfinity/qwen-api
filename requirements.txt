@@ -2,12 +2,12 @@ fastapi==0.109.0
 uvicorn==0.27.0
 pydantic==2.5.3
 python-multipart==0.0.6
-torch==2.2.0
-torchvision==0.17.0
-transformers>=4.49.0
-accelerate>=0.26.0
-qwen-vl-utils>=0.0.2
+# llama-cpp-python for GGUF model loading (built with CUDA in Dockerfile)
+llama-cpp-python>=0.3.0
+huggingface-hub>=0.20.0
+# Keep torch for CUDA detection and other utilities
+torch>=2.0.0
 pillow>=10.0.0
 numpy<2
 pyyaml>=6.0
-requests==2.31.0
+requests>=2.31.0

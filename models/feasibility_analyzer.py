@@ -3,7 +3,6 @@ Action Feasibility Analyzer - QWEN2.5-VL
 Evaluates how feasible an action is given a current image
 """
 
-import torch
 import json
 import base64
 import io
@@ -12,7 +11,7 @@ from typing import Optional, Dict, Any, Union
 from PIL import Image
 import logging
 
-from models.qwen_loader import load_qwen_model, get_device
+from models.qwen_loader import generate_response, get_device
 from utils.helpers import extract_json
 
 logger = logging.getLogger(__name__)
@@ -44,60 +43,28 @@ def analyze_action_feasibility(
         }
     
     try:
-        # Load image
+        # Load image and convert to base64 data URI for GGUF model
         image = _load_image(image_source)
-        
-        # Load model
-        model, processor = load_qwen_model()
-        device = get_device()
+        image_url = _image_to_data_uri(image)
         
         # Build prompt for feasibility analysis
         prompt = _build_feasibility_prompt(action)
         
         logger.debug(f"Analyzing feasibility for action: {action}")
         
-        # Prepare inputs
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": image},
-                    {"type": "text", "text": prompt}
-                ]
-            }
-        ]
-        
-        # Apply chat template
-        text_prompt = processor.apply_chat_template(messages, add_generation_prompt=True)
-        
-        # Prepare inputs
-        inputs = processor(
-            text=text_prompt,
-            images=[image],
-            return_tensors="pt"
+        # Generate response using GGUF model with image
+        response_text = generate_response(
+            prompt=prompt,
+            image_url=image_url,
+            max_tokens=600,
+            temperature=0.2
         )
-        
-        # Move to device
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(device)
-        
-        # Generate response
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=600,
-                temperature=0.2,
-                top_p=0.9,
-            )
-        
-        # Decode response
-        response_text = processor.decode(output_ids[0])
         
         # Extract JSON from response
         feasibility_data = extract_json(response_text)
         
         logger.debug(f"Feasibility analysis complete: score={feasibility_data.get('feasibility_score')}")
+        
         
         return feasibility_data
         
@@ -139,6 +106,14 @@ Consider:
 - What would need to be "hallucinated" (generated from nothing)?
 
 Return ONLY valid JSON."""
+
+
+def _image_to_data_uri(image: Image.Image) -> str:
+    """Convert PIL Image to base64 data URI for GGUF model."""
+    buffered = io.BytesIO()
+    image.save(buffered, format="JPEG", quality=85)
+    img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return f"data:image/jpeg;base64,{img_base64}"
 
 
 def _load_image(image_source: Union[str, bytes, Path]) -> Image.Image:

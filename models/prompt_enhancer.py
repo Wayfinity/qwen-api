@@ -4,11 +4,10 @@ Improves and expands prompts for better generation quality
 Integrates WAN 2.2 LoRA trigger words
 """
 
-import torch
 import json
 import logging
 from typing import Optional, Dict, Any, List
-from models.qwen_loader import load_qwen_model, get_device
+from models.qwen_loader import generate_response
 from utils.wan_lora_integration import enrich_prompt_with_lora_triggers, get_trigger_words, detect_lora_intents
 
 logger = logging.getLogger(__name__)
@@ -42,41 +41,17 @@ def enhance_text_prompt(
         }
     
     try:
-        model, processor = load_qwen_model()
-        device = get_device()
-        
         enhancement_prompt = _build_text_enhancement_prompt(prompt)
         
         logger.debug(f"Enhancing text prompt")
         
-        # Prepare inputs (text-only, no image)
-        messages = [
-            {
-                "role": "user",
-                "content": enhancement_prompt
-            }
-        ]
-        
-        # Apply chat template
-        text_input = processor.apply_chat_template(messages, add_generation_prompt=True)
-        
-        inputs = processor(text=text_input, return_tensors="pt")
-        
-        # Move to device
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(device)
-        
-        # Generate
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=400,
-                temperature=0.7,
-                top_p=0.9,
-            )
-        
-        response_text = processor.decode(output_ids[0])
+        # Generate response using GGUF model
+        response_text = generate_response(
+            prompt=enhancement_prompt,
+            image_url=None,
+            max_tokens=400,
+            temperature=0.7
+        )
         
         # Parse response
         result = _parse_enhancement_response(response_text, prompt, lora_triggers)
@@ -122,37 +97,17 @@ def enhance_image_prompt(
         }
     
     try:
-        model, processor = load_qwen_model()
-        device = get_device()
-        
         enhancement_prompt = _build_image_enhancement_prompt(original_prompt, image_description)
         
         logger.debug(f"Enhancing image prompt")
         
-        messages = [
-            {
-                "role": "user",
-                "content": enhancement_prompt
-            }
-        ]
-        
-        text_input = processor.apply_chat_template(messages, add_generation_prompt=True)
-        
-        inputs = processor(text=text_input, return_tensors="pt")
-        
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(device)
-        
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=400,
-                temperature=0.7,
-                top_p=0.9,
-            )
-        
-        response_text = processor.decode(output_ids[0])
+        # Generate response using GGUF model
+        response_text = generate_response(
+            prompt=enhancement_prompt,
+            image_url=None,
+            max_tokens=400,
+            temperature=0.7
+        )
         
         result = _parse_enhancement_response(response_text, original_prompt, lora_triggers)
         
@@ -196,37 +151,17 @@ def generate_dual_prompts_for_video(
         }
     
     try:
-        model, processor = load_qwen_model()
-        device = get_device()
-        
         dual_prompt_instruction = _build_dual_prompt_instruction(action)
         
         logger.debug(f"Generating dual prompts for action: {action}")
         
-        messages = [
-            {
-                "role": "user",
-                "content": dual_prompt_instruction
-            }
-        ]
-        
-        text_input = processor.apply_chat_template(messages, add_generation_prompt=True)
-        
-        inputs = processor(text=text_input, return_tensors="pt")
-        
-        for key in inputs:
-            if isinstance(inputs[key], torch.Tensor):
-                inputs[key] = inputs[key].to(device)
-        
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=500,
-                temperature=0.8,
-                top_p=0.9,
-            )
-        
-        response_text = processor.decode(output_ids[0])
+        # Generate response using GGUF model
+        response_text = generate_response(
+            prompt=dual_prompt_instruction,
+            image_url=None,
+            max_tokens=500,
+            temperature=0.8
+        )
         
         result = _parse_dual_prompt_response(response_text, action, lora_triggers)
         

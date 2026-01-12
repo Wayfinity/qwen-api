@@ -128,8 +128,8 @@ async def health_check():
     
     # Try to ensure model is loaded
     try:
-        model, processor = load_qwen_model()
-        model_loaded = True
+        llm, chat_handler = load_qwen_model()
+        model_loaded = llm is not None
     except Exception as e:
         logger.error(f"Model health check failed: {e}")
         model_loaded = False
