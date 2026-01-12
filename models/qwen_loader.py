@@ -4,7 +4,7 @@ Uses transformers library for cross-platform compatibility
 """
 
 import torch
-from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 from typing import Optional, Tuple
 import logging
 
@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 _model = None
 _processor = None
 
-# Use smaller NSFW-aware QWEN model optimized for inference
+# Use Qwen2.5-VL model for vision-language tasks
+# 7B requires ~16GB VRAM, use 3B for smaller GPUs
 QWEN_MODEL_ID = "Qwen/Qwen2.5-VL-7B-Instruct"
 # Alternative: "Qwen/Qwen2.5-VL-3B-Instruct" for faster inference if needed
 
@@ -29,7 +30,7 @@ def ensure_cuda_available():
     return True
 
 
-def load_qwen_model() -> Tuple[Qwen2VLForConditionalGeneration, AutoProcessor]:
+def load_qwen_model() -> Tuple[Qwen2_5_VLForConditionalGeneration, AutoProcessor]:
     """
     Load QWEN2.5-VL model for vision-language tasks.
     Lazy loads on first call, cached on subsequent calls.
@@ -52,7 +53,7 @@ def load_qwen_model() -> Tuple[Qwen2VLForConditionalGeneration, AutoProcessor]:
     _processor = AutoProcessor.from_pretrained(QWEN_MODEL_ID, trust_remote_code=True)
     
     # Load model with optimized settings
-    _model = Qwen2VLForConditionalGeneration.from_pretrained(
+    _model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         QWEN_MODEL_ID,
         torch_dtype=torch.float16 if device == "cuda" else torch.float32,
         device_map="auto",  # Automatic device placement for multi-GPU support
