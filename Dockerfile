@@ -16,8 +16,7 @@ RUN apt-get update && \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip --break-system-packages && \
-    pip install --no-cache-dir -r requirements.txt --break-system-packages && \
+RUN pip install --no-cache-dir -r requirements.txt --break-system-packages && \
     rm -rf /tmp/* /root/.cache/pip
 
 # Stage 2: Runtime stage - minimal Python image
