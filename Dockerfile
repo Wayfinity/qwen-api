@@ -14,6 +14,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libssl-dev \
     libffi-dev \
+    pkg-config \
+    libavcodec-dev \
+    libavformat-dev \
+    libavdevice-dev \
+    libswscale-dev \
+    libswresample-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
@@ -34,6 +40,11 @@ RUN apt-get update && apt-get install -y \
     python3.10 \
     python3-pip \
     libgomp1 \
+    libavcodec60 \
+    libavformat60 \
+    libavdevice60 \
+    libswscale7 \
+    libswresample4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python packages from builder
