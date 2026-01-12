@@ -5,17 +5,18 @@ FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
 
 WORKDIR /app
 
-# Install Python and pip
+# Install Python, build tools, and dev libraries
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3.10 \
+    python3-dev \
     python3-pip \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir --upgrade pip && \
+RUN pip install --upgrade pip setuptools wheel && \
     pip install -r requirements.txt
 
 # Stage 2: Runtime stage - minimal Python image
