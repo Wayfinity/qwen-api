@@ -3,6 +3,13 @@ name: Build and Push Docker Image to Docker Hub
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'models/**'
+      - 'utils/**'
+      - 'requirements.txt'
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
 jobs:
@@ -17,12 +24,12 @@ jobs:
       - name: Free up disk space
         run: |
           sudo docker system prune -af --volumes
-          sudo rm -rf /home/runner/.cache
-          sudo rm -rf /home/runner/work/_temp/*
-          sudo rm -rf /var/lib/apt/lists/*
+          sudo rm -rf /home/runner/.cache/*
           sudo apt-get clean
           sudo apt-get autoremove -y
-          sudo rm -rf /tmp/*
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
           df -h
 
       - name: Checkout code
@@ -40,7 +47,6 @@ jobs:
       - name: Extract metadata
         id: meta
         run: |
-          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
           echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Build and Push Docker Image
@@ -54,8 +60,6 @@ jobs:
             mavid/qwen-api:${{ steps.meta.outputs.short_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3

@@ -1,11 +1,11 @@
 # Multi-stage build for QWEN API
 
-# Stage 1: Builder stage
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS builder
+# Stage 1: Builder stage with CUDA dev tools
+FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
 
 WORKDIR /app
 
-# Install Python and pip in one layer
+# Install Python and pip
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3.10 \
@@ -18,15 +18,16 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir --upgrade pip && \
     pip install -r requirements.txt
 
-# Stage 2: Runtime stage
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
+# Stage 2: Runtime stage - minimal Python image
+FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install Python runtime only
+# Install CUDA runtime libraries from builder
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    python3.10 \
+    libcuda1 \
+    libnvrtc11.6 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Copy Python packages from builder
@@ -48,7 +49,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Run the application
-CMD ["python3", "run.py"]
+CMD ["python", "run.py"]
