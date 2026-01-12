@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt --break-system-packages && \
+RUN python3.10 -m pip install --no-cache-dir -r requirements.txt && \
     rm -rf /tmp/* /root/.cache/pip
 
 # Stage 2: Runtime stage - minimal Python image
@@ -24,8 +24,9 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+# Copy Python packages from builder stage
+COPY --from=builder /usr/lib/python3/dist-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
@@ -40,10 +41,6 @@ USER appuser
 
 # Expose API port
 EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Run the application
 CMD ["python", "run.py"]
