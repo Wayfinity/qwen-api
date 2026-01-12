@@ -5,29 +5,29 @@ FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS builder
 
 WORKDIR /app
 
-# Install Python and pip
-RUN apt-get update && apt-get install -y \
+# Install Python and pip in one layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     python3.10 \
     python3-pip \
-    python3-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip cache purge && \
-    rm -rf /tmp/* /root/.cache/*
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install -r requirements.txt
 
 # Stage 2: Runtime stage
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
 WORKDIR /app
 
-# Install Python runtime
-RUN apt-get update && apt-get install -y \
+# Install Python runtime only
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     python3.10 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Copy Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
