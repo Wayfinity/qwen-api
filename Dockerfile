@@ -26,7 +26,7 @@ COPY utils/ ./utils/
 COPY run.py .
 
 # Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /opt/venv
+RUN useradd -m appuser && chown -R appuser:appuser /app /opt/venv
 USER appuser
 
 # Expose API port
