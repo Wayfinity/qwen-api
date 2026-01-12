@@ -1,42 +1,25 @@
 # Multi-stage build for QWEN API
 
-# Stage 1: Builder stage
-FROM nvidia/cuda:12.1.1-devel-ubuntu22.04 AS builder
+# Stage 1: Builder stage with PyTorch pre-installed
+FROM pytorch/pytorch:2.0-cuda12.1-runtime-ubuntu22.04 AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install additional build dependencies
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
-    python3-dev \
     git \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Upgrade pip
-RUN python3 -m pip install --upgrade pip setuptools wheel
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir -r requirements.txt && \
-    rm -rf /root/.cache/pip/* && \
-    rm -rf /tmp/*
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge
 
 # Stage 2: Runtime stage
-FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
+FROM pytorch/pytorch:2.0-cuda12.1-runtime-ubuntu22.04
 
 WORKDIR /app
-
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
-    libgomp1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
@@ -57,7 +40,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
 # Run the application
-CMD ["python3", "run.py"]
+CMD ["python", "run.py"]
