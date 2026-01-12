@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y \
     libavfilter-dev \
     libswscale-dev \
     libswresample-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Upgrade pip
 RUN python3 -m pip install --upgrade pip setuptools wheel
@@ -31,7 +31,9 @@ RUN python3 -m pip install --upgrade pip setuptools wheel
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+    pip3 install --no-cache-dir -r requirements.txt && \
+    rm -rf /root/.cache/pip/* && \
+    rm -rf /tmp/*
 
 # Stage 2: Runtime stage
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
@@ -44,7 +46,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     libgomp1 \
     ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy Python packages from builder
 COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
