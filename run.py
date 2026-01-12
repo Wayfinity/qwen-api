@@ -19,7 +19,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(PROJECT_ROOT / 'qwen_api.log'),
         logging.StreamHandler()
     ]
 )
@@ -42,13 +41,18 @@ def check_environment():
         logger.error("❌ PyTorch not installed")
         return False
     
-    # Check required packages
-    required = ['fastapi', 'uvicorn', 'transformers', 'pillow']
+    # Check required packages (package_name: import_name)
+    required = {
+        'fastapi': 'fastapi',
+        'uvicorn': 'uvicorn', 
+        'transformers': 'transformers',
+        'pillow': 'PIL'
+    }
     missing = []
     
-    for package in required:
+    for package, import_name in required.items():
         try:
-            __import__(package)
+            __import__(import_name)
             logger.info(f"✅ {package} installed")
         except ImportError:
             missing.append(package)

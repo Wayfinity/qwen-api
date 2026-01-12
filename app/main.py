@@ -3,9 +3,11 @@ QWEN API - FastAPI application
 Provides endpoints for QWEN VLM integration for prompt enhancement and feasibility analysis
 """
 
+import os
 import logging
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
 import torch
 
@@ -32,6 +34,35 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ============= API AUTHENTICATION =============
+
+API_TOKEN = os.environ.get("API_TOKEN", None)
+security = HTTPBearer(auto_error=False)
+
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Verify API token if API_TOKEN env var is set.
+    If API_TOKEN is not set, authentication is disabled.
+    """
+    if API_TOKEN is None:
+        # Auth disabled - no token required
+        return None
+    
+    if credentials is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    if credentials.credentials != API_TOKEN:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid authentication token"
+        )
+    
+    return credentials.credentials
 
 
 # ============= LIFECYCLE =============
@@ -114,7 +145,7 @@ async def health_check():
 # ============= FEASIBILITY ANALYSIS =============
 
 @app.post("/analyze-feasibility", response_model=AnalyzeFeasibilityResponse)
-async def analyze_feasibility(request: AnalyzeFeasibilityRequest):
+async def analyze_feasibility(request: AnalyzeFeasibilityRequest, _: str = Depends(verify_token)):
     """
     Analyze how feasible an action is given a current image.
     
@@ -158,7 +189,7 @@ async def analyze_feasibility(request: AnalyzeFeasibilityRequest):
 # ============= PROMPT ENHANCEMENT =============
 
 @app.post("/enhance-prompt", response_model=EnhancePromptResponse)
-async def enhance_prompt(request: EnhancePromptRequest):
+async def enhance_prompt(request: EnhancePromptRequest, _: str = Depends(verify_token)):
     """
     Enhance a text-only prompt with more detail and specificity.
     Preserves LoRA trigger words.
@@ -197,7 +228,7 @@ async def enhance_prompt(request: EnhancePromptRequest):
 
 
 @app.post("/enhance-image-prompt", response_model=EnhanceImagePromptResponseWrapper)
-async def enhance_image_prompt_endpoint(request: EnhanceImagePromptRequest):
+async def enhance_image_prompt_endpoint(request: EnhanceImagePromptRequest, _: str = Depends(verify_token)):
     """
     Enhance a prompt based on current image context.
     Ensures smooth transition from current state to target action.
@@ -239,7 +270,7 @@ async def enhance_image_prompt_endpoint(request: EnhanceImagePromptRequest):
 # ============= DUAL PROMPT GENERATION =============
 
 @app.post("/generate-dual-prompts", response_model=GenerateDualPromptsResponse)
-async def generate_dual_prompts(request: GenerateDualPromptsRequest):
+async def generate_dual_prompts(request: GenerateDualPromptsRequest, _: str = Depends(verify_token)):
     """
     Generate 2 different prompt variations for text-to-video.
     
@@ -280,7 +311,7 @@ async def generate_dual_prompts(request: GenerateDualPromptsRequest):
 # ============= COMBINED ENDPOINTS =============
 
 @app.post("/text-to-video", response_model=TextToVideoResponse)
-async def text_to_video(request: TextToVideoRequest):
+async def text_to_video(request: TextToVideoRequest, _: str = Depends(verify_token)):
     """
     Complete text-to-video endpoint.
     
@@ -330,7 +361,7 @@ async def text_to_video(request: TextToVideoRequest):
 
 
 @app.post("/text-to-image", response_model=TextToImageResponse)
-async def text_to_image(request: TextToImageRequest):
+async def text_to_image(request: TextToImageRequest, _: str = Depends(verify_token)):
     """
     Complete text-to-image endpoint.
     
@@ -379,7 +410,7 @@ async def text_to_image(request: TextToImageRequest):
 
 
 @app.post("/image-to-video", response_model=ImageToVideoResponse)
-async def image_to_video(request: ImageToVideoRequest):
+async def image_to_video(request: ImageToVideoRequest, _: str = Depends(verify_token)):
     """
     Complete image-to-video endpoint.
     
