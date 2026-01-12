@@ -1,33 +1,23 @@
-# Multi-stage build for QWEN API
-
-# Stage 1: Builder stage with CUDA dev tools
-FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
+# QWEN API Docker Image
+FROM nvidia/cuda:12.6.1-runtime-ubuntu24.04
 
 WORKDIR /app
 
-# Install Python, build tools, and dev libraries
+# Install Python and pip
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    python3.10 \
-    python3-dev \
+    python3 \
     python3-pip \
-    build-essential \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Create and use virtual environment to avoid system package conflicts
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
 COPY requirements.txt .
-RUN python3.10 -m pip install --no-cache-dir -r requirements.txt && \
-    rm -rf /tmp/* /root/.cache/pip
-
-# Stage 2: Runtime stage - minimal Python image
-FROM python:3.10-slim
-
-WORKDIR /app
-
-# Copy Python packages from builder stage
-COPY --from=builder /usr/lib/python3/dist-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
-COPY --from=builder /usr/local/bin /usr/local/bin
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
@@ -36,7 +26,7 @@ COPY utils/ ./utils/
 COPY run.py .
 
 # Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /opt/venv
 USER appuser
 
 # Expose API port
