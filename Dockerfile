@@ -1,5 +1,5 @@
 # QWEN API Docker Image with llama-cpp-python CUDA support
-FROM nvidia/cuda:12.6.1-devel-ubuntu24.04 AS builder
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS builder
 
 WORKDIR /app
 
@@ -12,28 +12,35 @@ RUN apt-get update && \
     python3-dev \
     build-essential \
     cmake \
+    ninja-build \
     git \
+    curl \
+    libcublas-12-4 \
+    libcublas-dev-12-4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Upgrade pip and install build tools
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install numpy first (required by llama-cpp-python)
 RUN pip install --no-cache-dir "numpy<2"
 
 # Build and install llama-cpp-python with CUDA support
-# CMAKE_ARGS enables CUDA backend
-ENV CMAKE_ARGS="-DGGML_CUDA=on"
+ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all-major"
 ENV FORCE_CMAKE=1
-RUN pip install --no-cache-dir llama-cpp-python>=0.3.0 --verbose
+ENV CUDACXX=/usr/local/cuda/bin/nvcc
+RUN pip install --no-cache-dir "llama-cpp-python>=0.3.0" --verbose
 
 # Install remaining dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ---- Runtime stage ----
-FROM nvidia/cuda:12.6.1-runtime-ubuntu24.04
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 WORKDIR /app
 
