@@ -55,7 +55,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            CUDA_ARCHS=${{ vars.CUDA_ARCHS || '70;75;80;86;89;90' }}
+            CUDA_ARCHS=${{ vars.CUDA_ARCHS || '89' }}
           tags: |
             mavid/qwen-api:latest
             mavid/qwen-api:${{ github.sha }}

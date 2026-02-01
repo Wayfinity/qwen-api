@@ -19,6 +19,10 @@ RUN apt-get update && \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# CI builders don't have NVIDIA drivers, but CUDA builds may link against libcuda.
+# Provide the CUDA driver stub so linking succeeds during wheel build.
+RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+
 # Create virtual environment
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -34,11 +38,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Build and install llama-cpp-python with CUDA support
 ARG CUDA_ARCHS="89"
-ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS}"
+ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS} -DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs\ -L/usr/local/cuda/lib64/stubs -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath-link,/usr/local/cuda/lib64/stubs\ -L/usr/local/cuda/lib64/stubs"
 ENV GGML_CCACHE=ON
 ENV CCACHE_DIR=/root/.cache/ccache
 ENV FORCE_CMAKE=1
 ENV CUDACXX=/usr/local/cuda/bin/nvcc
+ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.cache/ccache \
     pip install "llama-cpp-python>=0.3.0"
