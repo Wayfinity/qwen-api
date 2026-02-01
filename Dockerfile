@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install "numpy<2"
 
 # Build and install llama-cpp-python with CUDA support
-ARG CUDA_ARCHS="70;75;80;86;89;90"
+ARG CUDA_ARCHS="89"
 ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS}"
 ENV GGML_CCACHE=ON
 ENV CCACHE_DIR=/root/.cache/ccache
