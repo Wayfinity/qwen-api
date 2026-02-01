@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.6
 # QWEN API Docker Image with llama-cpp-python CUDA support
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 AS builder
 
@@ -13,10 +14,13 @@ RUN apt-get update && \
     build-essential \
     cmake \
     ninja-build \
+    ccache \
     git \
     curl \
     libcublas-12-4 \
     libcublas-dev-12-4 \
+    libcublaslt-12-4 \
+    libcublaslt-dev-12-4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -24,20 +28,29 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Upgrade pip and install build tools
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip setuptools wheel
 
 # Install numpy first (required by llama-cpp-python)
-RUN pip install --no-cache-dir "numpy<2"
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install "numpy<2"
 
 # Build and install llama-cpp-python with CUDA support
-ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=70;75;80;86;89;90"
+ARG CUDA_ARCHS="70;75;80;86;89;90"
+ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS}"
+ENV GGML_CCACHE=ON
+ENV CCACHE_DIR=/root/.cache/ccache
 ENV FORCE_CMAKE=1
 ENV CUDACXX=/usr/local/cuda/bin/nvcc
-RUN pip install --no-cache-dir "llama-cpp-python>=0.3.0" --verbose
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/ccache \
+    pip install "llama-cpp-python>=0.3.0"
 
 # Install remaining dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
 # ---- Runtime stage ----
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
@@ -49,6 +62,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3 \
     python3-venv \
+    libcublas-12-4 \
+    libcublaslt-12-4 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
