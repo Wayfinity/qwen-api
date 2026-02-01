@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir "numpy<2"
 
 # Build and install llama-cpp-python with CUDA support
-ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=all-major"
+ENV CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=70;75;80;86;89;90"
 ENV FORCE_CMAKE=1
 ENV CUDACXX=/usr/local/cuda/bin/nvcc
 RUN pip install --no-cache-dir "llama-cpp-python>=0.3.0" --verbose
