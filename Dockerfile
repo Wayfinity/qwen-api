@@ -17,10 +17,6 @@ RUN apt-get update && \
     ccache \
     git \
     curl \
-    libcublas-12-4 \
-    libcublas-dev-12-4 \
-    libcublaslt-12-4 \
-    libcublaslt-dev-12-4 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
