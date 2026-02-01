@@ -18,11 +18,40 @@ _chat_handler = None
 GGUF_REPO_ID = "bartowski/thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-GGUF"
 GGUF_FILENAME = "*Q4_K_M.gguf"  # Q4_K_M is a good balance
 
+# Optional overrides
+# - QWEN_GGUF_FILENAME: exact GGUF filename (e.g. thesby_...-Q4_K_M.gguf)
+# - QWEN_MMPROJ_FILENAME: exact mmproj filename (e.g. mmproj-...-f16.gguf)
+
 # Context window size
 N_CTX = 4096
 
 # GPU layers - -1 means all layers on GPU
 N_GPU_LAYERS = -1
+
+
+def _select_mmproj_filename(repo_id: str) -> str:
+    """Pick a single mmproj file from a repo that contains multiple mmproj variants."""
+    try:
+        from huggingface_hub import list_repo_files
+    except Exception as e:  # pragma: no cover
+        raise ValueError(
+            "huggingface-hub is required to auto-select mmproj; set QWEN_MMPROJ_FILENAME"
+        ) from e
+
+    files = list_repo_files(repo_id=repo_id, repo_type="model")
+    candidates = [f for f in files if "mmproj" in f and f.endswith(".gguf")]
+    if not candidates:
+        raise ValueError(f"No *mmproj*.gguf files found in {repo_id}")
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # Prefer f16 projector, then bf16, then deterministic fallback.
+    for suffix in ("-f16.gguf", "-bf16.gguf"):
+        for f in candidates:
+            if f.endswith(suffix):
+                return f
+
+    return sorted(candidates)[0]
 
 
 def ensure_cuda_available() -> bool:
@@ -69,17 +98,24 @@ def load_qwen_model() -> Tuple[Any, Any]:
     # Load the vision chat handler from HuggingFace
     # The mmproj (multimodal projector) is bundled with the model
     logger.info("Loading Qwen2.5-VL chat handler...")
+    mmproj_filename = os.environ.get("QWEN_MMPROJ_FILENAME")
+    if not mmproj_filename:
+        mmproj_filename = _select_mmproj_filename(GGUF_REPO_ID)
+    logger.info(f"Using mmproj file: {mmproj_filename}")
     _chat_handler = Qwen25VLChatHandler.from_pretrained(
         repo_id=GGUF_REPO_ID,
-        filename="*mmproj*",  # Multimodal projector file
+        filename=mmproj_filename,
         verbose=False
     )
     
     # Load the main model from HuggingFace
     logger.info("Loading main GGUF model...")
+    model_filename = os.environ.get("QWEN_GGUF_FILENAME") or GGUF_FILENAME
+    if model_filename != GGUF_FILENAME:
+        logger.info(f"Using model file: {model_filename}")
     _llm = Llama.from_pretrained(
         repo_id=GGUF_REPO_ID,
-        filename=GGUF_FILENAME,
+        filename=model_filename,
         chat_handler=_chat_handler,
         n_ctx=N_CTX,
         n_gpu_layers=N_GPU_LAYERS,

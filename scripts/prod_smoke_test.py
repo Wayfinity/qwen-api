@@ -271,8 +271,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--token",
-        default=os.environ.get("API_TOKEN"),
-        help="Bearer token (default: API_TOKEN env var)",
+        default=None,
+        help="Bearer token (default: API_TOKEN env var). Use '-' to read from stdin.",
+    )
+    parser.add_argument(
+        "--token-stdin",
+        action="store_true",
+        help="Read bearer token from stdin (recommended for avoiding shell history)",
     )
     parser.add_argument(
         "--image",
@@ -284,7 +289,16 @@ def main() -> int:
 
     base_url = _normalize_base_url(args.url)
     verify_tls = not args.insecure
-    hdrs = _headers(args.token)
+
+    token = args.token if args.token is not None else os.environ.get("API_TOKEN")
+    if args.token_stdin or token == "-":
+        try:
+            # Works with piping or interactive paste.
+            token = (os.read(0, 1_000_000).decode("utf-8")).strip()
+        except Exception:
+            token = ""
+    token = token.strip() if isinstance(token, str) else None
+    hdrs = _headers(token)
 
     results: list[CheckResult] = []
 

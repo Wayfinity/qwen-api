@@ -19,6 +19,7 @@ class PositionChangeEnum(str, Enum):
     MINOR = "minor"
     MAJOR = "major"
     COMPLETE = "complete"
+    UNKNOWN = "unknown"
 
 
 # ============= FEASIBILITY ANALYZER =============
@@ -32,19 +33,19 @@ class AnalyzeFeasibilityRequest(BaseModel):
 
 class FeasibilityAnalysis(BaseModel):
     """Feasibility analysis response."""
-    feasibility_score: float = Field(description="0.0 to 1.0 feasibility score")
-    pose_similarity: float = Field(description="How similar current pose is to target")
-    current_pose: str = Field(description="Description of current pose")
+    feasibility_score: float = Field(0.0, description="0.0 to 1.0 feasibility score")
+    pose_similarity: float = Field(0.0, description="How similar current pose is to target")
+    current_pose: str = Field("unknown", description="Description of current pose")
     current_clothing: List[str] = Field(default_factory=list, description="Visible clothing items")
-    target_action: str = Field(description="The target action")
+    target_action: str = Field("", description="The target action")
     missing_elements: List[str] = Field(default_factory=list, description="Missing elements needed")
-    needs_second_person: bool = Field(description="Does action require second person?")
-    needs_penis: bool = Field(description="Does action require visible penis?")
-    needs_vagina_visible: bool = Field(description="Does action require visible vagina?")
-    needs_clothing_removal: bool = Field(description="Does action require clothing removal?")
-    needs_position_change: PositionChangeEnum = Field(description="What position change is needed?")
-    hallucination_risk: HallucinationRiskEnum = Field(description="Risk of hallucination in generation")
-    recommended_approach: str = Field(description="Recommended approach to achieve action")
+    needs_second_person: bool = Field(False, description="Does action require second person?")
+    needs_penis: bool = Field(False, description="Does action require visible penis?")
+    needs_vagina_visible: bool = Field(False, description="Does action require visible vagina?")
+    needs_clothing_removal: bool = Field(False, description="Does action require clothing removal?")
+    needs_position_change: PositionChangeEnum = Field(PositionChangeEnum.UNKNOWN, description="What position change is needed?")
+    hallucination_risk: HallucinationRiskEnum = Field(HallucinationRiskEnum.EXTREME, description="Risk of hallucination in generation")
+    recommended_approach: str = Field("", description="Recommended approach to achieve action")
     blockers: List[str] = Field(default_factory=list, description="Blockers preventing action")
     skipped: bool = Field(False, description="Was analysis skipped?")
     error: Optional[str] = Field(None, description="Error message if analysis failed")

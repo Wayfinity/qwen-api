@@ -20,12 +20,20 @@ python run.py --host 0.0.0.0 --port 9000
 
 ### Model Selection
 
-Edit `models/qwen_loader.py`:
+The API uses a GGUF model via `llama-cpp-python`.
 
-```python
-# Line 19 - Available options:
-QWEN_MODEL_ID = "Qwen/Qwen2.5-VL-7B-Instruct"    # Full size (14GB)
-QWEN_MODEL_ID = "Qwen/Qwen2.5-VL-3B-Instruct"    # Smaller (7GB)
+By default the loader pulls from:
+- Repo: `bartowski/thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-GGUF`
+- Quant: `*Q4_K_M.gguf`
+
+You can override which GGUF file (quant) is loaded via environment variables:
+
+```bash
+# Pick the exact GGUF file you want
+export QWEN_GGUF_FILENAME=thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-Q4_K_M.gguf
+
+# If the repo contains multiple mmproj files, choose one explicitly
+export QWEN_MMPROJ_FILENAME=mmproj-thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-f16.gguf
 ```
 
 ### Generation Parameters
@@ -149,6 +157,10 @@ export CUDA_VISIBLE_DEVICES=0
 # Torch Settings
 export TORCH_HOME=/custom/cache
 export TRANSFORMERS_CACHE=/custom/cache
+
+# Optional GGUF selection
+export QWEN_GGUF_FILENAME=thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-Q4_K_M.gguf
+export QWEN_MMPROJ_FILENAME=mmproj-thesby_Qwen2.5-VL-7B-NSFW-Caption-V3-f16.gguf
 ```
 
 ## Performance Tuning
