@@ -62,8 +62,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3 \
     python3-venv \
-    libcublas-12-4 \
-    libcublaslt-12-4 \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
