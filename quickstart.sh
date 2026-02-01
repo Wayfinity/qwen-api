@@ -39,7 +39,7 @@ echo "  Dependencies installed"
 # Verify installation
 echo ""
 echo "✓ Verifying installation..."
-python -c "import torch; import transformers; import fastapi; print('  All packages OK')" && echo "" || echo "  ERROR: Some packages missing"
+python -c "import torch; import fastapi; import llama_cpp; import huggingface_hub; print('  All packages OK')" && echo "" || echo "  ERROR: Some packages missing"
 
 # Show next steps
 echo "======================================"
