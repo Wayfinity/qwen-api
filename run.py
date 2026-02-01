@@ -38,14 +38,15 @@ def check_environment():
         else:
             logger.warning("⚠️  CUDA not available - will use CPU (SLOW!)")
     except ImportError:
-        logger.error("❌ PyTorch not installed")
-        return False
+        # Torch is optional for llama.cpp inference, but useful for CUDA visibility.
+        logger.warning("⚠️  PyTorch not installed; skipping CUDA visibility check")
     
     # Check required packages (package_name: import_name)
     required = {
         'fastapi': 'fastapi',
         'uvicorn': 'uvicorn', 
-        'transformers': 'transformers',
+        'llama-cpp-python': 'llama_cpp',
+        'huggingface-hub': 'huggingface_hub',
         'pillow': 'PIL'
     }
     missing = []
